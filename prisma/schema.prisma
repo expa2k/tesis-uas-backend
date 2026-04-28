@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model postulaciones {
+  id           Int                @id @default(autoincrement())
+  propuesta_id Int
+  usuario_id   Int
+  mensaje      String?
+  estado       postulacion_estado @default(pendiente)
+  created_at   DateTime           @default(now()) @db.Timestamp(6)
+  updated_at   DateTime           @default(now()) @db.Timestamp(6)
+  propuestas   propuestas         @relation(fields: [propuesta_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_postulaciones_propuesta")
+  users        users              @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_postulaciones_usuario")
+}
+
+model propuestas {
+  id            Int             @id @default(autoincrement())
+  titulo        String          @db.VarChar(255)
+  descripcion   String
+  tipo          propuesta_tipo
+  tecnologias   Json?
+  creador_id    Int
+  created_at    DateTime        @default(now()) @db.Timestamp(6)
+  updated_at    DateTime        @default(now()) @db.Timestamp(6)
+  postulaciones postulaciones[]
+  users         users           @relation(fields: [creador_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_propuestas_creador")
+}
+
+model proyecto_estudiantes {
+  proyecto_id   Int
+  estudiante_id Int
+  created_at    DateTime  @default(now()) @db.Timestamp(6)
+  users         users     @relation(fields: [estudiante_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pe_estudiante")
+  proyectos     proyectos @relation(fields: [proyecto_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pe_proyecto")
+
+  @@id([proyecto_id, estudiante_id])
+}
+
+model proyectos {
+  id                                   Int                    @id @default(autoincrement())
+  titulo                               String                 @db.VarChar(255)
+  etapa                                String                 @db.VarChar(100)
+  estado                               String                 @db.VarChar(100)
+  estado_tipo                          proyecto_estado_tipo   @default(revision)
+  progreso                             Int                    @default(0)
+  director_id                          Int?
+  codirector_id                        Int?
+  ultima_actualizacion                 DateTime               @default(now()) @db.Timestamp(6)
+  created_at                           DateTime               @default(now()) @db.Timestamp(6)
+  updated_at                           DateTime               @default(now()) @db.Timestamp(6)
+  proyecto_estudiantes                 proyecto_estudiantes[]
+  users_proyectos_codirector_idTousers users?                 @relation("proyectos_codirector_idTousers", fields: [codirector_id], references: [id], onUpdate: NoAction, map: "fk_proyectos_codirector")
+  users_proyectos_director_idTousers   users?                 @relation("proyectos_director_idTousers", fields: [director_id], references: [id], onUpdate: NoAction, map: "fk_proyectos_director")
+}
+
+model users {
+  id                                       Int                    @id @default(autoincrement())
+  nombre                                   String                 @db.VarChar(100)
+  email                                    String                 @unique @db.VarChar(150)
+  password                                 String                 @db.VarChar(255)
+  rol                                      user_rol               @default(Estudiante)
+  carrera                                  String?                @db.VarChar(150)
+  matricula                                String?                @db.VarChar(20)
+  telefono                                 String?                @db.VarChar(20)
+  bio                                      String?
+  created_at                               DateTime               @default(now()) @db.Timestamp(6)
+  updated_at                               DateTime               @default(now()) @db.Timestamp(6)
+  postulaciones                            postulaciones[]
+  propuestas                               propuestas[]
+  proyecto_estudiantes                     proyecto_estudiantes[]
+  proyectos_proyectos_codirector_idTousers proyectos[]            @relation("proyectos_codirector_idTousers")
+  proyectos_proyectos_director_idTousers   proyectos[]            @relation("proyectos_director_idTousers")
+}
+
+enum postulacion_estado {
+  pendiente
+  aceptada
+  rechazada
+}
+
+enum propuesta_tipo {
+  Busco_Director   @map("Busco Director")
+  Busco_Estudiante @map("Busco Estudiante")
+}
+
+enum proyecto_estado_tipo {
+  revision
+  correcciones
+  aprobado
+}
+
+enum user_rol {
+  Estudiante
+  Docente
+  Coordinador
+}

@@ -1,39 +1,33 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
+import { PrismaService } from '../prisma/prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { users } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
-  constructor(
-    @InjectRepository(User)
-    private readonly usersRepo: Repository<User>,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  async findByEmail(email: string): Promise<User | null> {
-    return this.usersRepo.findOne({ where: { email } });
+  async findByEmail(email: string): Promise<users | null> {
+    return this.prisma.users.findUnique({ where: { email } });
   }
 
-  async findByEmailWithPassword(email: string): Promise<User | null> {
-    return this.usersRepo
-      .createQueryBuilder('user')
-      .addSelect('user.password')
-      .where('user.email = :email', { email })
-      .getOne();
+  async findByEmailWithPassword(email: string): Promise<users | null> {
+    // Prisma returns all fields by default, so password is included
+    return this.prisma.users.findUnique({ where: { email } });
   }
 
-  async findById(id: number): Promise<User | null> {
-    return this.usersRepo.findOne({ where: { id } });
+  async findById(id: number): Promise<users | null> {
+    return this.prisma.users.findUnique({ where: { id } });
   }
 
-  async create(data: Partial<User>): Promise<User> {
-    const user = this.usersRepo.create(data);
-    return this.usersRepo.save(user);
+  async create(data: Partial<users>): Promise<users> {
+    return this.prisma.users.create({ data: data as any });
   }
 
-  async update(id: number, dto: UpdateUserDto): Promise<User> {
-    await this.usersRepo.update(id, dto);
-    return this.findById(id) as Promise<User>;
+  async update(id: number, dto: UpdateUserDto): Promise<users> {
+    return this.prisma.users.update({
+      where: { id },
+      data: dto as any,
+    });
   }
 }
