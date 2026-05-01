@@ -14,13 +14,24 @@ export class PropuestasService {
     });
   }
 
-  async findAll(): Promise<propuestas[]> {
-    return this.prisma.propuestas.findMany();
+  async findAll() {
+    return this.prisma.propuestas.findMany({
+      include: {
+        users: {
+          select: { nombre: true }
+        }
+      }
+    });
   }
 
-  async findOne(id: number): Promise<propuestas> {
+  async findOne(id: number) {
     const propuesta = await this.prisma.propuestas.findUnique({
       where: { id },
+      include: {
+        users: {
+          select: { nombre: true }
+        }
+      }
     });
     if (!propuesta) {
       throw new NotFoundException(`Propuesta con id ${id} no encontrada`);

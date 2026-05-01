@@ -14,13 +14,30 @@ export class ProyectosService {
     });
   }
 
-  async findAll(): Promise<proyectos[]> {
-    return this.prisma.proyectos.findMany();
+  async findAll() {
+    return this.prisma.proyectos.findMany({
+      include: {
+        users_proyectos_director_idTousers: {
+          select: { nombre: true }
+        },
+        users_proyectos_codirector_idTousers: {
+          select: { nombre: true }
+        }
+      }
+    });
   }
 
-  async findOne(id: number): Promise<proyectos> {
+  async findOne(id: number) {
     const proyecto = await this.prisma.proyectos.findUnique({
       where: { id },
+      include: {
+        users_proyectos_director_idTousers: {
+          select: { nombre: true }
+        },
+        users_proyectos_codirector_idTousers: {
+          select: { nombre: true }
+        }
+      }
     });
     if (!proyecto) {
       throw new NotFoundException(`Proyecto con id ${id} no encontrado`);

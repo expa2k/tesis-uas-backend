@@ -5,6 +5,8 @@ import { UsersModule } from './users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProyectosModule } from './proyectos/proyectos.module';
 import { PropuestasModule } from './propuestas/propuestas.module';
+import { PostulacionesModule } from './postulaciones/postulaciones.module';
+import { ProyectoEstudiantesModule } from './proyecto-estudiantes/proyecto-estudiantes.module';
 
 @Module({
   imports: [
@@ -14,6 +16,8 @@ import { PropuestasModule } from './propuestas/propuestas.module';
     PrismaModule,
     ProyectosModule,
     PropuestasModule,
+    PostulacionesModule,
+    ProyectoEstudiantesModule,
   ],
 })
 export class AppModule {}
