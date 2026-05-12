@@ -7,6 +7,8 @@ import { ProyectosModule } from './proyectos/proyectos.module';
 import { PropuestasModule } from './propuestas/propuestas.module';
 import { PostulacionesModule } from './postulaciones/postulaciones.module';
 import { ProyectoEstudiantesModule } from './proyecto-estudiantes/proyecto-estudiantes.module';
+import { RevisionesModule } from './revisiones/revisiones.module';
+import { MensajesModule } from './mensajes/mensajes.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { ProyectoEstudiantesModule } from './proyecto-estudiantes/proyecto-estud
     PropuestasModule,
     PostulacionesModule,
     ProyectoEstudiantesModule,
+    RevisionesModule,
+    MensajesModule,
   ],
 })
 export class AppModule {}

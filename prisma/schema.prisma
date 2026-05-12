@@ -56,6 +56,7 @@ model proyectos {
   proyecto_estudiantes                 proyecto_estudiantes[]
   users_proyectos_codirector_idTousers users?                 @relation("proyectos_codirector_idTousers", fields: [codirector_id], references: [id], onUpdate: NoAction, map: "fk_proyectos_codirector")
   users_proyectos_director_idTousers   users?                 @relation("proyectos_director_idTousers", fields: [director_id], references: [id], onUpdate: NoAction, map: "fk_proyectos_director")
+  revisiones                           revisiones[]
 }
 
 model users {
@@ -75,6 +76,9 @@ model users {
   proyecto_estudiantes                     proyecto_estudiantes[]
   proyectos_proyectos_codirector_idTousers proyectos[]            @relation("proyectos_codirector_idTousers")
   proyectos_proyectos_director_idTousers   proyectos[]            @relation("proyectos_director_idTousers")
+  revisiones                               revisiones[]
+  mensajes_enviados                        mensajes[]             @relation("mensajes_remitente")
+  mensajes_recibidos                       mensajes[]             @relation("mensajes_destinatario")
 }
 
 enum postulacion_estado {
@@ -98,4 +102,31 @@ enum user_rol {
   Estudiante
   Docente
   Coordinador
+}
+
+model revisiones {
+  id              Int       @id @default(autoincrement())
+  tipo            String    @db.VarChar(100)
+  estado          String    @default("Pendiente") @db.VarChar(100)
+  documento_url   String?
+  observaciones   String?
+  proyecto_id     Int
+  revisor_id      Int
+  created_at      DateTime  @default(now()) @db.Timestamp(6)
+  
+  proyectos       proyectos @relation(fields: [proyecto_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           users     @relation(fields: [revisor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model mensajes {
+  id              Int       @id @default(autoincrement())
+  asunto          String    @db.VarChar(255)
+  contenido       String
+  leido           Boolean   @default(false)
+  remitente_id    Int
+  destinatario_id Int
+  created_at      DateTime  @default(now()) @db.Timestamp(6)
+  
+  remitente       users     @relation("mensajes_remitente", fields: [remitente_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  destinatario    users     @relation("mensajes_destinatario", fields: [destinatario_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
