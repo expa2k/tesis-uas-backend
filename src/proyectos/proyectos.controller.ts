@@ -1,11 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
 import { ProyectosService } from './proyectos.service';
 import { CreateProyectoDto } from './dto/create-proyecto.dto';
 import { UpdateProyectoDto } from './dto/update-proyecto.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 
-@UseGuards(JwtAuthGuard)
 @Controller('proyectos')
+@UseGuards(JwtAuthGuard)
 export class ProyectosController {
   constructor(private readonly proyectosService: ProyectosService) {}
 
@@ -17,6 +19,20 @@ export class ProyectosController {
   @Get()
   findAll() {
     return this.proyectosService.findAll();
+  }
+
+  @Get('docente')
+  @UseGuards(RolesGuard)
+  @Roles('Docente')
+  findByDocente(@Req() req: any) {
+    return this.proyectosService.findByDocente(req.user.id_usuario);
+  }
+
+  @Get('alumno')
+  @UseGuards(RolesGuard)
+  @Roles('Estudiante')
+  findByAlumno(@Req() req: any) {
+    return this.proyectosService.findByAlumno(req.user.id_usuario);
   }
 
   @Get(':id')

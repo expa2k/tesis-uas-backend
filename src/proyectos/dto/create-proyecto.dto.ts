@@ -1,23 +1,28 @@
-import { IsNotEmpty, IsOptional, IsString, IsInt } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsInt, IsEnum } from 'class-validator';
+import { etapa_proyecto, proyecto_estado_tipo } from '@prisma/client';
 
 export class CreateProyectoDto {
   @IsString()
   @IsNotEmpty()
   titulo: string;
 
-  @IsString()
+  @IsEnum(etapa_proyecto)
   @IsNotEmpty()
-  etapa: string;
+  etapa: etapa_proyecto;
 
   @IsString()
   @IsNotEmpty()
   estado: string;
 
   @IsOptional()
-  @IsInt()
-  director_id?: number;
+  @IsEnum(proyecto_estado_tipo)
+  estado_tipo?: proyecto_estado_tipo;
 
   @IsOptional()
   @IsInt()
-  codirector_id?: number;
+  id_director?: number;
+
+  @IsOptional()
+  @IsInt()
+  id_codirector?: number;
 }

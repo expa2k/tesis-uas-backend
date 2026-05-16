@@ -2,15 +2,26 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePropuestaDto } from './dto/create-propuesta.dto';
 import { UpdatePropuestaDto } from './dto/update-propuesta.dto';
 import { PrismaService } from '../prisma/prisma/prisma.service';
-import { propuestas } from '@prisma/client';
+import { propuesta_tipo } from '@prisma/client';
 
 @Injectable()
 export class PropuestasService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createPropuestaDto: CreatePropuestaDto): Promise<propuestas> {
+  async create(createPropuestaDto: CreatePropuestaDto, idCreador: number): Promise<any> {
     return this.prisma.propuestas.create({
-      data: createPropuestaDto,
+      data: {
+        titulo: createPropuestaDto.titulo,
+        descripcion: createPropuestaDto.descripcion,
+        tipo: createPropuestaDto.tipo,
+        tecnologias: createPropuestaDto.tecnologias,
+        id_creador: idCreador,
+      },
+      include: {
+        users: {
+          select: { id_usuario: true, nombre: true, email: true }
+        }
+      }
     });
   }
 
@@ -18,7 +29,7 @@ export class PropuestasService {
     return this.prisma.propuestas.findMany({
       include: {
         users: {
-          select: { nombre: true }
+          select: { id_usuario: true, nombre: true, email: true }
         }
       }
     });
@@ -26,10 +37,10 @@ export class PropuestasService {
 
   async findOne(id: number) {
     const propuesta = await this.prisma.propuestas.findUnique({
-      where: { id },
+      where: { id_propuesta: id },
       include: {
         users: {
-          select: { nombre: true }
+          select: { id_usuario: true, nombre: true, email: true }
         }
       }
     });
@@ -39,21 +50,97 @@ export class PropuestasService {
     return propuesta;
   }
 
-  async update(id: number, updatePropuestaDto: UpdatePropuestaDto): Promise<propuestas> {
-    await this.findOne(id); // Verifica si existe
+  async update(id: number, updatePropuestaDto: UpdatePropuestaDto): Promise<any> {
+    await this.findOne(id);
     return this.prisma.propuestas.update({
-      where: { id },
+      where: { id_propuesta: id },
       data: {
         ...updatePropuestaDto,
         updated_at: new Date(),
       },
+      include: {
+        users: {
+          select: { id_usuario: true, nombre: true, email: true }
+        }
+      }
     });
   }
 
-  async remove(id: number): Promise<propuestas> {
-    await this.findOne(id); // Verifica si existe
+  async remove(id: number): Promise<any> {
+    await this.findOne(id);
     return this.prisma.propuestas.delete({
-      where: { id },
+      where: { id_propuesta: id },
     });
+  }
+
+  async findByDocente(filtros?: { tipo?: string; estado_postulacion?: string }) {
+    const where: any = {
+      tipo: propuesta_tipo.Busco_Estudiante
+    };
+
+    if (filtros?.tipo) {
+      where.tipo = filtros.tipo as propuesta_tipo;
+    }
+
+    const propuestas = await this.prisma.propuestas.findMany({
+      where,
+      include: {
+        users: {
+          select: { id_usuario: true, nombre: true, email: true }
+        },
+        postulaciones: {
+          include: {
+            users: {
+              select: { id_usuario: true, nombre: true, email: true }
+            }
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+
+    return propuestas.map(p => ({
+      id_propuesta: p.id_propuesta,
+      titulo: p.titulo,
+      descripcion: p.descripcion,
+      tipo: p.tipo,
+      tecnologias: p.tecnologias,
+      created_at: p.created_at,
+      creador: p.users,
+      postulaciones: filtros?.estado_postulacion 
+        ? p.postulaciones.filter(post => post.estado === filtros.estado_postulacion)
+        : p.postulaciones,
+      cantidad_postulaciones: p.postulaciones.length
+    }));
+  }
+
+  async findByAlumno(idCreador: number) {
+    const propuestas = await this.prisma.propuestas.findMany({
+      where: { id_creador: idCreador },
+      include: {
+        users: {
+          select: { id_usuario: true, nombre: true, email: true }
+        },
+        postulaciones: {
+          include: {
+            users: {
+              select: { id_usuario: true, nombre: true, email: true }
+            }
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+
+    return propuestas.map(p => ({
+      id_propuesta: p.id_propuesta,
+      titulo: p.titulo,
+      descripcion: p.descripcion,
+      tipo: p.tipo,
+      tecnologias: p.tecnologias,
+      created_at: p.created_at,
+      creador: p.users,
+      postulaciones: p.postulaciones
+    }));
   }
 }

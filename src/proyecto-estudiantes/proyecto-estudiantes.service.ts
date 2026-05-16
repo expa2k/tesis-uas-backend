@@ -8,7 +8,11 @@ export class ProyectoEstudiantesService {
 
   async create(createProyectoEstudianteDto: CreateProyectoEstudianteDto) {
     return this.prisma.proyecto_estudiantes.create({
-      data: createProyectoEstudianteDto,
+      data: {
+        id_proyecto: createProyectoEstudianteDto.id_proyecto,
+        id_estudiante: createProyectoEstudianteDto.id_estudiante,
+        rol_en_proyecto: createProyectoEstudianteDto.rol_en_proyecto,
+      },
     });
   }
 
@@ -17,29 +21,29 @@ export class ProyectoEstudiantesService {
       include: {
         proyectos: true,
         users: {
-          select: { id: true, nombre: true, email: true, rol: true }
+          select: { id_usuario: true, nombre: true, email: true, rol: true }
         }
       }
     });
   }
 
-  async findByProyecto(proyecto_id: number) {
+  async findByProyecto(id_proyecto: number) {
     return this.prisma.proyecto_estudiantes.findMany({
-      where: { proyecto_id },
+      where: { id_proyecto },
       include: {
         users: {
-          select: { id: true, nombre: true, email: true, rol: true }
+          select: { id_usuario: true, nombre: true, email: true, rol: true }
         }
       }
     });
   }
 
-  async remove(proyecto_id: number, estudiante_id: number) {
+  async remove(id_proyecto: number, id_estudiante: number) {
     const record = await this.prisma.proyecto_estudiantes.findUnique({
       where: {
-        proyecto_id_estudiante_id: {
-          proyecto_id,
-          estudiante_id,
+        id_proyecto_id_estudiante: {
+          id_proyecto,
+          id_estudiante,
         }
       }
     });
@@ -50,9 +54,9 @@ export class ProyectoEstudiantesService {
 
     return this.prisma.proyecto_estudiantes.delete({
       where: {
-        proyecto_id_estudiante_id: {
-          proyecto_id,
-          estudiante_id,
+        id_proyecto_id_estudiante: {
+          id_proyecto,
+          id_estudiante,
         }
       }
     });

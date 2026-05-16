@@ -1,11 +1,15 @@
-import { IsInt, IsNotEmpty } from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateProyectoEstudianteDto {
   @IsInt()
   @IsNotEmpty()
-  proyecto_id: number;
+  id_proyecto: number;
 
   @IsInt()
   @IsNotEmpty()
-  estudiante_id: number;
+  id_estudiante: number;
+
+  @IsOptional()
+  @IsString()
+  rol_en_proyecto?: string;
 }

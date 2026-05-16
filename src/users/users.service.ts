@@ -17,7 +17,7 @@ export class UsersService {
   }
 
   async findById(id: number): Promise<users | null> {
-    return this.prisma.users.findUnique({ where: { id } });
+    return this.prisma.users.findUnique({ where: { id_usuario: id } });
   }
 
   async create(data: Partial<users>): Promise<users> {
@@ -26,7 +26,7 @@ export class UsersService {
 
   async update(id: number, dto: UpdateUserDto): Promise<users> {
     return this.prisma.users.update({
-      where: { id },
+      where: { id_usuario: id },
       data: dto as any,
     });
   }

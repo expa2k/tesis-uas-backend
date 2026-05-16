@@ -9,6 +9,7 @@ import { PostulacionesModule } from './postulaciones/postulaciones.module';
 import { ProyectoEstudiantesModule } from './proyecto-estudiantes/proyecto-estudiantes.module';
 import { RevisionesModule } from './revisiones/revisiones.module';
 import { MensajesModule } from './mensajes/mensajes.module';
+import { NotificacionesModule } from './notificaciones/notificaciones.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { MensajesModule } from './mensajes/mensajes.module';
     ProyectoEstudiantesModule,
     RevisionesModule,
     MensajesModule,
+    NotificacionesModule,
   ],
 })
 export class AppModule {}

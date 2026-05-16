@@ -16,8 +16,4 @@ export class CreatePropuestaDto {
 
   @IsOptional()
   tecnologias?: any;
-
-  @IsInt()
-  @IsNotEmpty()
-  creador_id: number;
 }

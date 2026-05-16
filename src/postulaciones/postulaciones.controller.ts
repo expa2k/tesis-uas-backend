@@ -1,22 +1,43 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
 import { PostulacionesService } from './postulaciones.service';
 import { CreatePostulacionDto } from './dto/create-postulacion.dto';
 import { UpdatePostulacionDto } from './dto/update-postulacion.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { postulacion_estado } from '@prisma/client';
 
-@UseGuards(JwtAuthGuard)
 @Controller('postulaciones')
+@UseGuards(JwtAuthGuard)
 export class PostulacionesController {
   constructor(private readonly postulacionesService: PostulacionesService) {}
 
   @Post()
-  create(@Body() createPostulacionDto: CreatePostulacionDto) {
-    return this.postulacionesService.create(createPostulacionDto);
+  create(@Body() createPostulacionDto: CreatePostulacionDto, @Req() req: any) {
+    return this.postulacionesService.create(createPostulacionDto, req.user.id_usuario);
   }
 
   @Get()
   findAll() {
     return this.postulacionesService.findAll();
+  }
+
+  @Get('mis-postulaciones')
+  @UseGuards(RolesGuard)
+  @Roles('Estudiante')
+  findMyPostulaciones(@Req() req: any) {
+    return this.postulacionesService.findByAlumno(req.user.id_usuario);
+  }
+
+  @Patch(':id/estado')
+  @UseGuards(RolesGuard)
+  @Roles('Docente')
+  cambiarEstado(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('estado') estado: postulacion_estado,
+    @Req() req: any
+  ) {
+    return this.postulacionesService.cambiarEstado(id, estado, req.user.id_usuario);
   }
 
   @Get(':id')

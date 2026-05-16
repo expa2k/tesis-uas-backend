@@ -1,31 +1,102 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma/prisma.service';
+import { revision_estado } from '@prisma/client';
 
 @Injectable()
 export class RevisionesService {
   constructor(private prisma: PrismaService) {}
 
-  findAll() {
+  async create(data: { id_proyecto: number; tipo: string; documento_path: string }, idEstudiante: number) {
+    const proyecto = await this.prisma.proyectos.findUnique({
+      where: { id_proyecto: data.id_proyecto }
+    });
+
+    if (!proyecto) {
+      throw new NotFoundException(`Proyecto con id ${data.id_proyecto} no encontrado`);
+    }
+
+    const revision = await this.prisma.revisiones.create({
+      data: {
+        id_proyecto: data.id_proyecto,
+        id_estudiante: idEstudiante,
+        tipo: data.tipo,
+        documento_path: data.documento_path
+      },
+      include: {
+        proyectos: { select: { titulo: true } },
+        users: { select: { id_usuario: true, nombre: true, email: true } }
+      }
+    });
+
+    if (proyecto.id_director) {
+      await this.prisma.notificaciones.create({
+        data: {
+          id_usuario: proyecto.id_director,
+          tipo: 'revision',
+          titulo: 'Nueva revisión enviada',
+          mensaje: `El estudiante ha enviado una nueva revisión para el proyecto "${proyecto.titulo}".`,
+          id_referencia: revision.id_revision,
+          tabla_referencia: 'revisiones'
+        }
+      });
+    }
+
+    return revision;
+  }
+
+  async findAll() {
     return this.prisma.revisiones.findMany({
       include: {
-        proyectos: true,
-        users: true
-      }
+        proyectos: { select: { titulo: true, id_proyecto: true } },
+        users: { select: { id_usuario: true, nombre: true, email: true } }
+      },
+      orderBy: { fecha: 'desc' }
     });
   }
 
-  findByRevisor(revisorId: number) {
+  async findByProyecto(idProyecto: number) {
     return this.prisma.revisiones.findMany({
-      where: { revisor_id: revisorId },
+      where: { id_proyecto: idProyecto },
       include: {
-        proyectos: {
-          include: {
-            proyecto_estudiantes: {
-              include: { users: true }
-            }
-          }
-        }
+        proyectos: { select: { titulo: true, id_proyecto: true } },
+        users: { select: { id_usuario: true, nombre: true, email: true } }
+      },
+      orderBy: { fecha: 'desc' }
+    });
+  }
+
+  async cambiarEstado(id: number, estado: revision_estado, idDocente: number) {
+    const revision = await this.prisma.revisiones.findUnique({
+      where: { id_revision: id },
+      include: {
+        proyectos: true
       }
     });
+
+    if (!revision) {
+      throw new NotFoundException(`Revisión con id ${id} no encontrada`);
+    }
+
+    const updated = await this.prisma.revisiones.update({
+      where: { id_revision: id },
+      data: { estado },
+      include: {
+        proyectos: { select: { titulo: true } },
+        users: { select: { id_usuario: true, nombre: true, email: true } }
+      }
+    });
+
+    await this.prisma.notificaciones.create({
+      data: {
+        id_usuario: revision.id_estudiante,
+        tipo: 'revision',
+        titulo: estado === 'aceptada' ? 'Revisión aceptada' : 'Revisión requiere cambios',
+        mensaje: `Tu revisión del proyecto "${revision.proyectos.titulo}" ha sido ${estado === 'aceptada' ? 'aceptada' : 'marcada como requiere cambios'}.`,
+        id_referencia: id,
+        tabla_referencia: 'revisiones'
+      }
+    });
+
+    return updated;
   }
 }

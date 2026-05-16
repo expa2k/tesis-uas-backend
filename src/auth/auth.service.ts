@@ -46,7 +46,7 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    const payload = { sub: user.id, email: user.email, rol: user.rol };
+    const payload = { sub: user.id_usuario, email: user.email, rol: user.rol };
     const { password, ...userData } = user;
 
     return {
