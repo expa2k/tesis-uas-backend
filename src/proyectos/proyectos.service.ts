@@ -36,6 +36,12 @@ export class ProyectosService {
           include: {
             users: { select: { id_usuario: true, nombre: true, email: true } }
           }
+        },
+        revisiones: {
+          include: {
+            users: { select: { id_usuario: true, nombre: true, email: true } }
+          },
+          orderBy: { fecha: 'desc' }
         }
       }
     });

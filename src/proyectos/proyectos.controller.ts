@@ -11,6 +11,23 @@ import { Roles } from '../auth/roles.decorator';
 export class ProyectosController {
   constructor(private readonly proyectosService: ProyectosService) {}
 
+  @Delete('dev/cleanup-duplicates')
+  async cleanup() {
+    const proyectos = await this.proyectosService.findAll();
+    const seen = new Set();
+    let count = 0;
+    for (const p of proyectos) {
+      const key = `${p.titulo}-${p.id_director}`;
+      if (seen.has(key)) {
+        await this.proyectosService.remove(p.id_proyecto);
+        count++;
+      } else {
+        seen.add(key);
+      }
+    }
+    return { deleted: count };
+  }
+
   @Post()
   create(@Body() createProyectoDto: CreateProyectoDto) {
     return this.proyectosService.create(createProyectoDto);

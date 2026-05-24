@@ -23,15 +23,11 @@ export class PostulacionesController {
   }
 
   @Get('mis-postulaciones')
-  @UseGuards(RolesGuard)
-  @Roles('Estudiante')
   findMyPostulaciones(@Req() req: any) {
     return this.postulacionesService.findByAlumno(req.user.id_usuario);
   }
 
   @Patch(':id/estado')
-  @UseGuards(RolesGuard)
-  @Roles('Docente')
   cambiarEstado(
     @Param('id', ParseIntPipe) id: number,
     @Body('estado') estado: postulacion_estado,

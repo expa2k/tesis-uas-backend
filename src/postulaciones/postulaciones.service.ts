@@ -136,14 +136,42 @@ export class PostulacionesService {
       throw new ForbiddenException('No tienes permiso para cambiar el estado de esta postulación');
     }
 
+    if (postulacion.estado === estado) {
+      return postulacion; // Ya está en este estado, ignorar para no duplicar proyectos
+    }
+
     const updated = await this.prisma.postulaciones.update({
       where: { id_postulacion: id },
       data: { estado, updated_at: new Date() },
       include: {
-        propuestas: { select: { titulo: true, tipo: true } },
+        propuestas: { select: { titulo: true, tipo: true, id_creador: true } },
         users: { select: { id_usuario: true, nombre: true, email: true, rol: true } }
       }
     });
+
+    if (estado === 'aceptada') {
+      const isBuscoDirector = updated.propuestas.tipo === 'Busco_Director' || (updated.propuestas.tipo as string) === 'Busco Director';
+      const id_estudiante = isBuscoDirector ? updated.propuestas.id_creador : updated.users.id_usuario;
+      const id_director = isBuscoDirector ? updated.users.id_usuario : updated.propuestas.id_creador;
+
+      const nuevoProyecto = await this.prisma.proyectos.create({
+        data: {
+          titulo: updated.propuestas.titulo,
+          etapa: 'Documentacion_Prototipo',
+          estado: 'Iniciado',
+          estado_tipo: 'revision',
+          id_director: id_director,
+        }
+      });
+
+      await this.prisma.proyecto_estudiantes.create({
+        data: {
+          id_proyecto: nuevoProyecto.id_proyecto,
+          id_estudiante: id_estudiante,
+          rol_en_proyecto: 'Titular'
+        }
+      });
+    }
 
     await this.notificacionesService.create({
       id_usuario: postulacion.id_usuario,

@@ -9,6 +9,6 @@ export class MensajesController {
 
   @Get()
   findAll(@Req() req: any) {
-    return this.mensajesService.findByUser(req.user.id);
+    return this.mensajesService.findByUser(req.user.id_usuario);
   }
 }

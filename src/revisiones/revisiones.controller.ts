@@ -1,4 +1,7 @@
-import { Controller, Get, Post, Body, Patch, Param, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, ParseIntPipe, UseGuards, Req, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 import { RevisionesService } from './revisiones.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -10,11 +13,28 @@ import { revision_estado } from '@prisma/client';
 export class RevisionesController {
   constructor(private readonly revisionesService: RevisionesService) {}
 
-  @Post()
+  @Post('upload')
   @UseGuards(RolesGuard)
   @Roles('Estudiante')
-  create(@Body() data: { id_proyecto: number; tipo: string; documento_path: string }, @Req() req: any) {
-    return this.revisionesService.create(data, req.user.id_usuario);
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: './uploads',
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        const ext = extname(file.originalname);
+        cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+      }
+    })
+  }))
+  createWithUpload(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('id_proyecto', ParseIntPipe) id_proyecto: number,
+    @Body('tipo') tipo: string,
+    @Req() req: any
+  ) {
+    if (!file) throw new BadRequestException('Archivo no proporcionado');
+    const documento_path = `/uploads/${file.filename}`;
+    return this.revisionesService.create({ id_proyecto, tipo, documento_path }, req.user.id_usuario);
   }
 
   @Get()
@@ -36,8 +56,9 @@ export class RevisionesController {
   cambiarEstado(
     @Param('id', ParseIntPipe) id: number,
     @Body('estado') estado: revision_estado,
+    @Body('comentario') comentario: string,
     @Req() req: any
   ) {
-    return this.revisionesService.cambiarEstado(id, estado, req.user.id_usuario);
+    return this.revisionesService.cambiarEstado(id, estado, comentario, req.user.id_usuario);
   }
 }

@@ -67,7 +67,7 @@ export class RevisionesService {
     });
   }
 
-  async cambiarEstado(id: number, estado: revision_estado, idDocente: number) {
+  async cambiarEstado(id: number, estado: revision_estado, comentario: string, idDocente: number) {
     const revision = await this.prisma.revisiones.findUnique({
       where: { id_revision: id },
       include: {
@@ -81,7 +81,7 @@ export class RevisionesService {
 
     const updated = await this.prisma.revisiones.update({
       where: { id_revision: id },
-      data: { estado },
+      data: { estado, comentario },
       include: {
         proyectos: { select: { titulo: true } },
         users: { select: { id_usuario: true, nombre: true, email: true } }

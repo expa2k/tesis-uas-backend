@@ -10,12 +10,12 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getProfile(@Req() req) {
-    return this.usersService.findById(req.user.id);
+    return this.usersService.findById(req.user.id_usuario);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch('me')
   updateProfile(@Req() req, @Body() dto: UpdateUserDto) {
-    return this.usersService.update(req.user.id, dto);
+    return this.usersService.update(req.user.id_usuario, dto);
   }
 }

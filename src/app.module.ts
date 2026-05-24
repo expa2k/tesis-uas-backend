@@ -11,9 +11,16 @@ import { RevisionesModule } from './revisiones/revisiones.module';
 import { MensajesModule } from './mensajes/mensajes.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'uploads'),
+      serveRoot: '/uploads',
+    }),
     AuthModule,
     UsersModule,
     PrismaModule,
