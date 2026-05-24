@@ -1,3 +1,4 @@
+/// <reference types="multer" />
 import { Controller, Get, Post, Body, Patch, Param, ParseIntPipe, UseGuards, Req, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';

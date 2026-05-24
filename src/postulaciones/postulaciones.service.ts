@@ -32,11 +32,12 @@ export class PostulacionesService {
     });
 
     // Notificar al creador de la propuesta sobre la nueva postulación
+    const rolEsp = postulacion.users.rol === 'Docente' ? 'El profesor' : 'El estudiante';
     await this.notificacionesService.create({
       id_usuario: postulacion.propuestas.id_creador,
       tipo: 'postulacion',
       titulo: 'Nueva postulación recibida',
-      mensaje: `${postulacion.users.nombre} se ha postulado a tu propuesta "${postulacion.propuestas.titulo}".`,
+      mensaje: `${rolEsp} ${postulacion.users.nombre} desea postularse a tu propuesta "${postulacion.propuestas.titulo}".`,
       id_referencia: postulacion.id_postulacion,
       tabla_referencia: 'postulaciones'
     });
