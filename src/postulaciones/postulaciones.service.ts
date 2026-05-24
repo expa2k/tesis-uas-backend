@@ -145,15 +145,13 @@ export class PostulacionesService {
       }
     });
 
-    await this.prisma.notificaciones.create({
-      data: {
-        id_usuario: postulacion.id_usuario,
-        tipo: 'postulacion',
-        titulo: estado === 'aceptada' ? 'Postulación aceptada' : 'Postulación rechazada',
-        mensaje: `Tu postulación al proyecto "${postulacion.propuestas.titulo}" ha sido ${estado === 'aceptada' ? 'aceptada' : 'rechazada'}.`,
-        id_referencia: id,
-        tabla_referencia: 'postulaciones'
-      }
+    await this.notificacionesService.create({
+      id_usuario: postulacion.id_usuario,
+      tipo: 'postulacion',
+      titulo: estado === 'aceptada' ? 'Postulación aceptada' : 'Postulación rechazada',
+      mensaje: `Tu postulación al proyecto "${postulacion.propuestas.titulo}" ha sido ${estado === 'aceptada' ? 'aceptada' : 'rechazada'}.`,
+      id_referencia: id,
+      tabla_referencia: 'postulaciones'
     });
 
     return updated;

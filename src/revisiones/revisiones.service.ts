@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma/prisma.service';
 import { revision_estado } from '@prisma/client';
+import { NotificacionesService } from '../notificaciones/notificaciones.service';
 
 @Injectable()
 export class RevisionesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificacionesService: NotificacionesService
+  ) {}
 
   async create(data: { id_proyecto: number; tipo: string; documento_path: string }, idEstudiante: number) {
     const proyecto = await this.prisma.proyectos.findUnique({
@@ -29,15 +33,13 @@ export class RevisionesService {
     });
 
     if (proyecto.id_director) {
-      await this.prisma.notificaciones.create({
-        data: {
-          id_usuario: proyecto.id_director,
-          tipo: 'revision',
-          titulo: 'Nueva revisión enviada',
-          mensaje: `El estudiante ha enviado una nueva revisión para el proyecto "${proyecto.titulo}".`,
-          id_referencia: revision.id_revision,
-          tabla_referencia: 'revisiones'
-        }
+      await this.notificacionesService.create({
+        id_usuario: proyecto.id_director,
+        tipo: 'revision',
+        titulo: 'Nueva revisión enviada',
+        mensaje: `El estudiante ha enviado una nueva revisión para el proyecto "${proyecto.titulo}".`,
+        id_referencia: revision.id_revision,
+        tabla_referencia: 'revisiones'
       });
     }
 
@@ -86,15 +88,13 @@ export class RevisionesService {
       }
     });
 
-    await this.prisma.notificaciones.create({
-      data: {
-        id_usuario: revision.id_estudiante,
-        tipo: 'revision',
-        titulo: estado === 'aceptada' ? 'Revisión aceptada' : 'Revisión requiere cambios',
-        mensaje: `Tu revisión del proyecto "${revision.proyectos.titulo}" ha sido ${estado === 'aceptada' ? 'aceptada' : 'marcada como requiere cambios'}.`,
-        id_referencia: id,
-        tabla_referencia: 'revisiones'
-      }
+    await this.notificacionesService.create({
+      id_usuario: revision.id_estudiante,
+      tipo: 'revision',
+      titulo: estado === 'aceptada' ? 'Revisión aceptada' : 'Revisión requiere cambios',
+      mensaje: `Tu revisión del proyecto "${revision.proyectos.titulo}" ha sido ${estado === 'aceptada' ? 'aceptada' : 'marcada como requiere cambios'}.`,
+      id_referencia: id,
+      tabla_referencia: 'revisiones'
     });
 
     return updated;
