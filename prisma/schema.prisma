@@ -141,6 +141,7 @@ model revisiones {
   tipo           String
   fecha          DateTime        @default(now()) @db.Timestamp(6)
   documento_path String
+  comentario     String?
 
   proyectos proyectos @relation(fields: [id_proyecto],   references: [id_proyecto], onDelete: Cascade, map: "fk_revisiones_proyecto")
   users     users     @relation(fields: [id_estudiante], references: [id_usuario],  onDelete: Cascade, map: "fk_revisiones_estudiante")
