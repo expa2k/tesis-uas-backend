@@ -13,6 +13,11 @@ export class NotificacionesController {
     return this.notificacionesService.findAll(req.user.id_usuario, leidaFilter);
   }
 
+  @Get('no-leidas/count')
+  countNoLeidas(@Req() req: any) {
+    return this.notificacionesService.countNoLeidas(req.user.id_usuario);
+  }
+
   @Patch(':id/leer')
   marcarLeida(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.notificacionesService.marcarLeida(id, req.user.id_usuario);

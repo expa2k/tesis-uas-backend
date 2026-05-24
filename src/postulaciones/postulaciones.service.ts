@@ -3,23 +3,45 @@ import { CreatePostulacionDto } from './dto/create-postulacion.dto';
 import { UpdatePostulacionDto } from './dto/update-postulacion.dto';
 import { PrismaService } from '../prisma/prisma/prisma.service';
 import { postulacion_estado } from '@prisma/client';
+import { NotificacionesService } from '../notificaciones/notificaciones.service';
 
 @Injectable()
 export class PostulacionesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificacionesService: NotificacionesService
+  ) {}
 
   async create(createPostulacionDto: CreatePostulacionDto, idUsuario: number) {
-    return this.prisma.postulaciones.create({
+    const postulacion = await this.prisma.postulaciones.create({
       data: {
         id_propuesta: createPostulacionDto.id_propuesta,
         id_usuario: idUsuario,
         mensaje: createPostulacionDto.mensaje,
       },
       include: {
-        propuestas: { select: { titulo: true, tipo: true } },
+        propuestas: { 
+          select: { 
+            titulo: true, 
+            tipo: true,
+            id_creador: true
+          } 
+        },
         users: { select: { id_usuario: true, nombre: true, email: true, rol: true } }
       }
     });
+
+    // Notificar al creador de la propuesta sobre la nueva postulación
+    await this.notificacionesService.create({
+      id_usuario: postulacion.propuestas.id_creador,
+      tipo: 'postulacion',
+      titulo: 'Nueva postulación recibida',
+      mensaje: `${postulacion.users.nombre} se ha postulado a tu propuesta "${postulacion.propuestas.titulo}".`,
+      id_referencia: postulacion.id_postulacion,
+      tabla_referencia: 'postulaciones'
+    });
+
+    return postulacion;
   }
 
   async findAll() {

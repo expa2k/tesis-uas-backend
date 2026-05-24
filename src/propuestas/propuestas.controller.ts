@@ -3,8 +3,6 @@ import { PropuestasService } from './propuestas.service';
 import { CreatePropuestaDto } from './dto/create-propuesta.dto';
 import { UpdatePropuestaDto } from './dto/update-propuesta.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
 
 @Controller('propuestas')
 @UseGuards(JwtAuthGuard)
@@ -19,23 +17,6 @@ export class PropuestasController {
   @Get()
   findAll() {
     return this.propuestasService.findAll();
-  }
-
-  @Get('docente')
-  @UseGuards(RolesGuard)
-  @Roles('Docente')
-  findByDocente(
-    @Query('tipo') tipo?: string,
-    @Query('estado_postulacion') estadoPostulacion?: string
-  ) {
-    return this.propuestasService.findByDocente({ tipo, estado_postulacion: estadoPostulacion });
-  }
-
-  @Get('alumno')
-  @UseGuards(RolesGuard)
-  @Roles('Estudiante')
-  findByAlumno(@Req() req: any) {
-    return this.propuestasService.findByAlumno(req.user.id_usuario);
   }
 
   @Get(':id')

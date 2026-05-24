@@ -1,19 +1,39 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateProyectoEstudianteDto } from './dto/create-proyecto-estudiante.dto';
 import { PrismaService } from '../prisma/prisma/prisma.service';
+import { NotificacionesService } from '../notificaciones/notificaciones.service';
 
 @Injectable()
 export class ProyectoEstudiantesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificacionesService: NotificacionesService
+  ) {}
 
   async create(createProyectoEstudianteDto: CreateProyectoEstudianteDto) {
-    return this.prisma.proyecto_estudiantes.create({
+    const proyectoEstudiante = await this.prisma.proyecto_estudiantes.create({
       data: {
         id_proyecto: createProyectoEstudianteDto.id_proyecto,
         id_estudiante: createProyectoEstudianteDto.id_estudiante,
         rol_en_proyecto: createProyectoEstudianteDto.rol_en_proyecto,
       },
+      include: {
+        proyectos: { select: { titulo: true } },
+        users: { select: { id_usuario: true, nombre: true, email: true } }
+      }
     });
+
+    // Notificar al estudiante que ha sido añadido al proyecto
+    await this.notificacionesService.create({
+      id_usuario: createProyectoEstudianteDto.id_estudiante,
+      tipo: 'proyecto',
+      titulo: 'Has sido añadido a un proyecto',
+      mensaje: `Has sido añadido al proyecto "${proyectoEstudiante.proyectos.titulo}".`,
+      id_referencia: createProyectoEstudianteDto.id_proyecto,
+      tabla_referencia: 'proyectos'
+    });
+
+    return proyectoEstudiante;
   }
 
   async findAll() {

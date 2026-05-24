@@ -1,9 +1,23 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma/prisma.service';
+import { notificacion_tipo } from '@prisma/client';
 
 @Injectable()
 export class NotificacionesService {
   constructor(private prisma: PrismaService) {}
+
+  async create(data: {
+    id_usuario: number;
+    tipo: notificacion_tipo;
+    titulo: string;
+    mensaje: string;
+    id_referencia: number;
+    tabla_referencia: string;
+  }) {
+    return this.prisma.notificaciones.create({
+      data
+    });
+  }
 
   async findAll(idUsuario: number, leida?: boolean) {
     const where: any = { id_usuario: idUsuario };

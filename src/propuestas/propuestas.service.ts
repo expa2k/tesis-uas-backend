@@ -26,13 +26,33 @@ export class PropuestasService {
   }
 
   async findAll() {
-    return this.prisma.propuestas.findMany({
+    const propuestas = await this.prisma.propuestas.findMany({
       include: {
         users: {
           select: { id_usuario: true, nombre: true, email: true }
+        },
+        postulaciones: {
+          include: {
+            users: {
+              select: { id_usuario: true, nombre: true, email: true }
+            }
+          }
         }
-      }
+      },
+      orderBy: { created_at: 'desc' }
     });
+
+    return propuestas.map(p => ({
+      id_propuesta: p.id_propuesta,
+      titulo: p.titulo,
+      descripcion: p.descripcion,
+      tipo: p.tipo,
+      tecnologias: p.tecnologias,
+      created_at: p.created_at,
+      creador: p.users,
+      postulaciones: p.postulaciones,
+      id_creador: p.id_creador
+    }));
   }
 
   async findOne(id: number) {
@@ -71,76 +91,5 @@ export class PropuestasService {
     return this.prisma.propuestas.delete({
       where: { id_propuesta: id },
     });
-  }
-
-  async findByDocente(filtros?: { tipo?: string; estado_postulacion?: string }) {
-    const where: any = {
-      tipo: propuesta_tipo.Busco_Estudiante
-    };
-
-    if (filtros?.tipo) {
-      where.tipo = filtros.tipo as propuesta_tipo;
-    }
-
-    const propuestas = await this.prisma.propuestas.findMany({
-      where,
-      include: {
-        users: {
-          select: { id_usuario: true, nombre: true, email: true }
-        },
-        postulaciones: {
-          include: {
-            users: {
-              select: { id_usuario: true, nombre: true, email: true }
-            }
-          }
-        }
-      },
-      orderBy: { created_at: 'desc' }
-    });
-
-    return propuestas.map(p => ({
-      id_propuesta: p.id_propuesta,
-      titulo: p.titulo,
-      descripcion: p.descripcion,
-      tipo: p.tipo,
-      tecnologias: p.tecnologias,
-      created_at: p.created_at,
-      creador: p.users,
-      postulaciones: filtros?.estado_postulacion 
-        ? p.postulaciones.filter(post => post.estado === filtros.estado_postulacion)
-        : p.postulaciones,
-      cantidad_postulaciones: p.postulaciones.length
-    }));
-  }
-
-  async findByAlumno(idCreador: number) {
-    const propuestas = await this.prisma.propuestas.findMany({
-      where: { id_creador: idCreador },
-      include: {
-        users: {
-          select: { id_usuario: true, nombre: true, email: true }
-        },
-        postulaciones: {
-          include: {
-            users: {
-              select: { id_usuario: true, nombre: true, email: true }
-            }
-          }
-        }
-      },
-      orderBy: { created_at: 'desc' }
-    });
-
-    return propuestas.map(p => ({
-      id_propuesta: p.id_propuesta,
-      titulo: p.titulo,
-      descripcion: p.descripcion,
-      tipo: p.tipo,
-      tecnologias: p.tecnologias,
-      created_at: p.created_at,
-      creador: p.users,
-      postulaciones: p.postulaciones
-    }));
   }
 }
