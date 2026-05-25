@@ -6,7 +6,117 @@ datasource db {
   provider = "postgresql"
 }
 
-// ─── Enums ────────────────────────────────────────────────────
+model users {
+  id_usuario                Int                    @id @default(autoincrement())
+  nombre                    String                 @db.VarChar(100)
+  email                     String                 @unique @db.VarChar(150)
+  password                  String                 @db.VarChar(255)
+  rol                       user_rol               @default(Estudiante)
+  carrera                   String?                @db.VarChar(150)
+  matricula                 String?                @db.VarChar(20)
+  telefono                  String?                @db.VarChar(20)
+  bio                       String?
+  created_at                DateTime               @default(now()) @db.Timestamp(6)
+  updated_at                DateTime               @default(now()) @db.Timestamp(6)
+  mensajes_recibidos        mensajes[]             @relation("destinatario")
+  mensajes_enviados         mensajes[]             @relation("remitente")
+  notificaciones            notificaciones[]
+  postulaciones             postulaciones[]
+  propuestas                propuestas[]
+  proyecto_estudiantes      proyecto_estudiantes[]
+  proyectos_como_codirector proyectos[]            @relation("codirector")
+  proyectos_como_director   proyectos[]            @relation("director")
+  revisiones                revisiones[]
+}
+
+model propuestas {
+  id_propuesta  Int             @id @default(autoincrement())
+  titulo        String          @db.VarChar(255)
+  descripcion   String
+  tipo          propuesta_tipo
+  tecnologias   Json?
+  id_creador    Int
+  created_at    DateTime        @default(now()) @db.Timestamp(6)
+  updated_at    DateTime        @default(now()) @db.Timestamp(6)
+  postulaciones postulaciones[]
+  users         users           @relation(fields: [id_creador], references: [id_usuario], onDelete: Cascade, map: "fk_propuestas_creador")
+}
+
+model postulaciones {
+  id_postulacion Int                @id @default(autoincrement())
+  id_propuesta   Int
+  id_usuario     Int
+  mensaje        String?
+  estado         postulacion_estado @default(pendiente)
+  created_at     DateTime           @default(now()) @db.Timestamp(6)
+  updated_at     DateTime           @default(now()) @db.Timestamp(6)
+  propuestas     propuestas         @relation(fields: [id_propuesta], references: [id_propuesta], onDelete: Cascade, map: "fk_postulaciones_propuesta")
+  users          users              @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade, map: "fk_postulaciones_usuario")
+}
+
+model proyectos {
+  id_proyecto          Int                    @id @default(autoincrement())
+  titulo               String                 @db.VarChar(255)
+  etapa                etapa_proyecto
+  estado               String                 @db.VarChar(100)
+  estado_tipo          proyecto_estado_tipo   @default(revision)
+  id_director          Int?
+  id_codirector        Int?
+  ultima_actualizacion DateTime               @default(now()) @db.Timestamp(6)
+  created_at           DateTime               @default(now()) @db.Timestamp(6)
+  updated_at           DateTime               @default(now()) @db.Timestamp(6)
+  proyecto_estudiantes proyecto_estudiantes[]
+  codirector           users?                 @relation("codirector", fields: [id_codirector], references: [id_usuario], onUpdate: NoAction, map: "fk_proyectos_codirector")
+  director             users?                 @relation("director", fields: [id_director], references: [id_usuario], onUpdate: NoAction, map: "fk_proyectos_director")
+  revisiones           revisiones[]
+}
+
+model proyecto_estudiantes {
+  id_proyecto     Int
+  id_estudiante   Int
+  rol_en_proyecto String?   @db.VarChar(50)
+  created_at      DateTime  @default(now()) @db.Timestamp(6)
+  users           users     @relation(fields: [id_estudiante], references: [id_usuario], onDelete: Cascade, map: "fk_pe_estudiante")
+  proyectos       proyectos @relation(fields: [id_proyecto], references: [id_proyecto], onDelete: Cascade, map: "fk_pe_proyecto")
+
+  @@id([id_proyecto, id_estudiante])
+}
+
+model revisiones {
+  id_revision    Int             @id @default(autoincrement())
+  id_proyecto    Int
+  id_estudiante  Int
+  estado         revision_estado @default(pendiente)
+  tipo           String
+  fecha          DateTime        @default(now()) @db.Timestamp(6)
+  documento_path String
+  comentario     String?
+  users          users           @relation(fields: [id_estudiante], references: [id_usuario], onDelete: Cascade, map: "fk_revisiones_estudiante")
+  proyectos      proyectos       @relation(fields: [id_proyecto], references: [id_proyecto], onDelete: Cascade, map: "fk_revisiones_proyecto")
+}
+
+model notificaciones {
+  id_notificacion  Int               @id @default(autoincrement())
+  id_usuario       Int
+  tipo             notificacion_tipo
+  titulo           String            @db.VarChar(255)
+  mensaje          String
+  id_referencia    Int
+  tabla_referencia String            @db.VarChar(50)
+  leida            Boolean           @default(false)
+  created_at       DateTime          @default(now()) @db.Timestamp(6)
+  users            users             @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade, map: "fk_notificaciones_usuario")
+}
+
+model mensajes {
+  id_mensaje      Int      @id @default(autoincrement())
+  remitente_id    Int
+  destinatario_id Int
+  contenido       String
+  created_at      DateTime @default(now()) @db.Timestamp(6)
+  destinatario    users    @relation("destinatario", fields: [destinatario_id], references: [id_usuario], onDelete: Cascade, map: "fk_mensajes_destinatario")
+  remitente       users    @relation("remitente", fields: [remitente_id], references: [id_usuario], onDelete: Cascade, map: "fk_mensajes_remitente")
+}
 
 enum user_rol {
   Estudiante
@@ -48,126 +158,4 @@ enum notificacion_tipo {
   postulacion
   revision
   proyecto
-}
-
-// ─── Modelos ──────────────────────────────────────────────────
-
-model users {
-  id_usuario   Int      @id @default(autoincrement())
-  nombre       String   @db.VarChar(100)
-  email        String   @unique @db.VarChar(150)
-  password     String   @db.VarChar(255)
-  rol          user_rol @default(Estudiante)
-  carrera      String?  @db.VarChar(150)
-  matricula    String?  @db.VarChar(20)
-  telefono     String?  @db.VarChar(20)
-  bio          String?
-  created_at   DateTime @default(now()) @db.Timestamp(6)
-  updated_at   DateTime @default(now()) @db.Timestamp(6)
-
-  propuestas             propuestas[]
-  postulaciones          postulaciones[]
-  revisiones             revisiones[]
-  notificaciones         notificaciones[]
-  proyecto_estudiantes   proyecto_estudiantes[]
-  proyectos_como_director   proyectos[] @relation("director")
-  proyectos_como_codirector proyectos[] @relation("codirector")
-  mensajes_enviados       mensajes[]       @relation("remitente")
-  mensajes_recibidos     mensajes[]       @relation("destinatario")
-}
-
-model propuestas {
-  id_propuesta Int            @id @default(autoincrement())
-  titulo       String         @db.VarChar(255)
-  descripcion  String
-  tipo         propuesta_tipo
-  tecnologias  Json?
-  id_creador   Int
-  created_at   DateTime       @default(now()) @db.Timestamp(6)
-  updated_at   DateTime       @default(now()) @db.Timestamp(6)
-
-  users         users           @relation(fields: [id_creador], references: [id_usuario], onDelete: Cascade, map: "fk_propuestas_creador")
-  postulaciones postulaciones[]
-}
-
-model postulaciones {
-  id_postulacion Int                @id @default(autoincrement())
-  id_propuesta   Int
-  id_usuario     Int
-  mensaje        String?
-  estado         postulacion_estado @default(pendiente)
-  created_at     DateTime           @default(now()) @db.Timestamp(6)
-  updated_at     DateTime           @default(now()) @db.Timestamp(6)
-
-  propuestas propuestas @relation(fields: [id_propuesta], references: [id_propuesta], onDelete: Cascade, map: "fk_postulaciones_propuesta")
-  users      users      @relation(fields: [id_usuario],   references: [id_usuario],   onDelete: Cascade, map: "fk_postulaciones_usuario")
-}
-
-model proyectos {
-  id_proyecto          Int                  @id @default(autoincrement())
-  titulo               String               @db.VarChar(255)
-  etapa                etapa_proyecto
-  estado               String               @db.VarChar(100)
-  estado_tipo          proyecto_estado_tipo @default(revision)
-  id_director          Int?
-  id_codirector        Int?
-  ultima_actualizacion DateTime             @default(now()) @db.Timestamp(6)
-  created_at           DateTime             @default(now()) @db.Timestamp(6)
-  updated_at           DateTime             @default(now()) @db.Timestamp(6)
-
-  director             users?                 @relation("director",   fields: [id_director],   references: [id_usuario], onUpdate: NoAction, map: "fk_proyectos_director")
-  codirector           users?                 @relation("codirector", fields: [id_codirector], references: [id_usuario], onUpdate: NoAction, map: "fk_proyectos_codirector")
-  revisiones           revisiones[]
-  proyecto_estudiantes proyecto_estudiantes[]
-}
-
-model proyecto_estudiantes {
-  id_proyecto   Int
-  id_estudiante Int
-  rol_en_proyecto String?  @db.VarChar(50)
-  created_at    DateTime @default(now()) @db.Timestamp(6)
-
-  proyectos proyectos @relation(fields: [id_proyecto],   references: [id_proyecto], onDelete: Cascade, map: "fk_pe_proyecto")
-  users     users     @relation(fields: [id_estudiante], references: [id_usuario],  onDelete: Cascade, map: "fk_pe_estudiante")
-
-  @@id([id_proyecto, id_estudiante])
-}
-
-model revisiones {
-  id_revision    Int             @id @default(autoincrement())
-  id_proyecto    Int
-  id_estudiante  Int
-  estado         revision_estado @default(pendiente)
-  tipo           String
-  fecha          DateTime        @default(now()) @db.Timestamp(6)
-  documento_path String
-  comentario     String?
-
-  proyectos proyectos @relation(fields: [id_proyecto],   references: [id_proyecto], onDelete: Cascade, map: "fk_revisiones_proyecto")
-  users     users     @relation(fields: [id_estudiante], references: [id_usuario],  onDelete: Cascade, map: "fk_revisiones_estudiante")
-}
-
-model notificaciones {
-  id_notificacion  Int               @id @default(autoincrement())
-  id_usuario       Int
-  tipo             notificacion_tipo
-  titulo           String            @db.VarChar(255)
-  mensaje          String
-  id_referencia    Int
-  tabla_referencia String            @db.VarChar(50)
-  leida            Boolean           @default(false)
-  created_at       DateTime          @default(now()) @db.Timestamp(6)
-
-  users users @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade, map: "fk_notificaciones_usuario")
-}
-
-model mensajes {
-  id_mensaje      Int       @id @default(autoincrement())
-  remitente_id    Int
-  destinatario_id Int
-  contenido       String
-  created_at      DateTime  @default(now()) @db.Timestamp(6)
-
-  remitente      users     @relation("remitente",   fields: [remitente_id],   references: [id_usuario], onDelete: Cascade, map: "fk_mensajes_remitente")
-  destinatario   users     @relation("destinatario", fields: [destinatario_id], references: [id_usuario], onDelete: Cascade, map: "fk_mensajes_destinatario")
 }

@@ -38,6 +38,17 @@ export class RevisionesController {
     return this.revisionesService.create({ id_proyecto, tipo, documento_path }, req.user.id_usuario);
   }
 
+  @Post('generar-documento-completo')
+  @UseGuards(RolesGuard)
+  @Roles('Estudiante')
+  generarDocumentoCompleto(
+    @Body('id_proyecto', ParseIntPipe) id_proyecto: number,
+    @Body('etapa') etapa: string,
+    @Req() req: any
+  ) {
+    return this.revisionesService.generarDocumentoCompleto(id_proyecto, req.user.id_usuario, etapa);
+  }
+
   @Get()
   findAll(@Req() req: any) {
     if (req.user.rol === 'Docente') {
