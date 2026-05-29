@@ -3,8 +3,6 @@ import { PrismaService } from '../prisma/prisma/prisma.service';
 import { revision_estado } from '@prisma/client';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
-import { mkdir, writeFile } from 'fs/promises';
-import { join } from 'path';
 
 @Injectable()
 export class RevisionesService {
@@ -58,9 +56,6 @@ export class RevisionesService {
       throw new NotFoundException(`Proyecto con id ${id_proyecto} no encontrado`);
     }
 
-    const uploadsDir = join(process.cwd(), 'uploads');
-    await mkdir(uploadsDir, { recursive: true });
-
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage();
     const { width, height } = page.getSize();
@@ -94,38 +89,8 @@ export class RevisionesService {
       y -= 18;
     }
 
-    const fileName = `documento-completo-${id_proyecto}-${Date.now()}.pdf`;
-    const filePath = join(uploadsDir, fileName);
     const pdfBytes = await pdfDoc.save();
-    await writeFile(filePath, pdfBytes);
-
-    const documento_path = `/uploads/${fileName}`;
-
-    const revision = await this.prisma.revisiones.create({
-      data: {
-        id_proyecto,
-        id_estudiante: idEstudiante,
-        tipo: 'Documento completo',
-        documento_path,
-      },
-      include: {
-        proyectos: { select: { titulo: true } },
-        users: { select: { id_usuario: true, nombre: true, email: true } },
-      },
-    });
-
-    if (proyecto.id_director) {
-      await this.notificacionesService.create({
-        id_usuario: proyecto.id_director,
-        tipo: 'revision',
-        titulo: 'Documento completo generado',
-        mensaje: `Se ha generado el documento completo para el proyecto "${proyecto.titulo}".`,
-        id_referencia: revision.id_revision,
-        tabla_referencia: 'revisiones',
-      });
-    }
-
-    return { path: documento_path, revision };
+    return Buffer.from(pdfBytes);
   }
 
   async findAll() {

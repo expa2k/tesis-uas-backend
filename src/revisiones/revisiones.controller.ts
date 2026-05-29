@@ -41,7 +41,7 @@ export class RevisionesController {
   @Post('generar-documento-completo')
   @UseGuards(RolesGuard)
   @Roles('Estudiante')
-  generarDocumentoCompleto(
+  async generarDocumentoCompleto(
     @Body('id_proyecto', ParseIntPipe) id_proyecto: number,
     @Body('etapa') etapa: string,
     @Req() req: any
