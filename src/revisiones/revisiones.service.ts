@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma/prisma.service';
 import { revision_estado } from '@prisma/client';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
+import { PDFDocument, StandardFonts } from 'pdf-lib';
 
 @Injectable()
 export class RevisionesService {
@@ -44,6 +45,52 @@ export class RevisionesService {
     }
 
     return revision;
+  }
+
+  async generarDocumentoCompleto(id_proyecto: number, idEstudiante: number, etapa: string) {
+    const proyecto = await this.prisma.proyectos.findUnique({
+      where: { id_proyecto },
+    });
+
+    if (!proyecto) {
+      throw new NotFoundException(`Proyecto con id ${id_proyecto} no encontrado`);
+    }
+
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage();
+    const { width, height } = page.getSize();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+    const lines = [
+      `Documento completo - ${proyecto.titulo}`,
+      `Etapa: ${etapa}`,
+      `Generado por: ${idEstudiante}`,
+      `Fecha: ${new Date().toLocaleString('es-ES')}`,
+      '',
+      'Este archivo ha sido generado automáticamente como documento completo de la etapa correspondiente.',
+    ];
+
+    let y = height - 60;
+    page.drawText(lines.shift() ?? '', {
+      x: 50,
+      y,
+      size: 18,
+      font,
+    });
+    y -= 28;
+
+    for (const line of lines) {
+      page.drawText(line, {
+        x: 50,
+        y,
+        size: 12,
+        font,
+      });
+      y -= 18;
+    }
+
+    const pdfBytes = await pdfDoc.save();
+    return Buffer.from(pdfBytes);
   }
 
   async findAll() {
