@@ -1,5 +1,5 @@
 /// <reference types="multer" />
-import { Controller, Get, Post, Body, Patch, Param, ParseIntPipe, UseGuards, Req, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, ParseIntPipe, UseGuards, Req, UseInterceptors, UploadedFile, BadRequestException, StreamableFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -45,8 +45,12 @@ export class RevisionesController {
     @Body('id_proyecto', ParseIntPipe) id_proyecto: number,
     @Body('etapa') etapa: string,
     @Req() req: any
-  ) {
-    return this.revisionesService.generarDocumentoCompleto(id_proyecto, req.user.id_usuario, etapa);
+  ): Promise<StreamableFile> {
+    const buffer = await this.revisionesService.generarDocumentoCompleto(id_proyecto, req.user.id_usuario, etapa);
+    return new StreamableFile(buffer, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="documento-completo-${id_proyecto}.pdf"`,
+    });
   }
 
   @Get()

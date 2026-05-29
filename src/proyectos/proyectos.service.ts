@@ -74,6 +74,20 @@ export class ProyectosService {
     });
   }
 
+  private calcularProgreso(revisiones: Array<{ tipo: string; estado: string; fecha: Date }>): number {
+    const TOTAL_SUBETAPAS = 18;
+    const tiposMap = new Map<string, { estado: string; fecha: Date }>();
+    for (const r of revisiones) {
+      if (r.tipo === 'Documento completo') continue;
+      const existing = tiposMap.get(r.tipo);
+      if (!existing || r.fecha > existing.fecha) {
+        tiposMap.set(r.tipo, r);
+      }
+    }
+    const aceptadas = [...tiposMap.values()].filter(r => r.estado === 'aceptada').length;
+    return Math.round((aceptadas / TOTAL_SUBETAPAS) * 100);
+  }
+
   async findByDocente(idDocente: number) {
     const proyectos = await this.prisma.proyectos.findMany({
       where: {
@@ -89,7 +103,8 @@ export class ProyectosService {
           include: {
             users: { select: { id_usuario: true, nombre: true, email: true } }
           }
-        }
+        },
+        revisiones: { select: { tipo: true, estado: true, fecha: true } }
       },
       orderBy: { ultima_actualizacion: 'desc' }
     });
@@ -104,7 +119,8 @@ export class ProyectosService {
       ultima_actualizacion: p.ultima_actualizacion,
       director: p.director,
       codirector: p.codirector,
-      estudiantes: p.proyecto_estudiantes.map(pe => pe.users)
+      estudiantes: p.proyecto_estudiantes.map(pe => pe.users),
+      progreso: this.calcularProgreso(p.revisiones)
     }));
   }
 
@@ -122,7 +138,8 @@ export class ProyectosService {
           include: {
             users: { select: { id_usuario: true, nombre: true, email: true } }
           }
-        }
+        },
+        revisiones: { select: { tipo: true, estado: true, fecha: true } }
       },
       orderBy: { ultima_actualizacion: 'desc' }
     });
@@ -137,7 +154,8 @@ export class ProyectosService {
       ultima_actualizacion: p.ultima_actualizacion,
       director: p.director,
       codirector: p.codirector,
-      estudiantes: p.proyecto_estudiantes.map(pe => pe.users)
+      estudiantes: p.proyecto_estudiantes.map(pe => pe.users),
+      progreso: this.calcularProgreso(p.revisiones)
     }));
   }
 }
