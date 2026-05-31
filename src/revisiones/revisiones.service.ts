@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma/prisma.service';
 import { revision_estado } from '@prisma/client';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class RevisionesService {
@@ -48,49 +50,201 @@ export class RevisionesService {
   }
 
   async generarDocumentoCompleto(id_proyecto: number, idEstudiante: number, etapa: string) {
+    console.log('🔍 Iniciando generación de documento:', { id_proyecto, idEstudiante, etapa });
+
     const proyecto = await this.prisma.proyectos.findUnique({
       where: { id_proyecto },
     });
 
     if (!proyecto) {
+      console.error('❌ Proyecto no encontrado:', id_proyecto);
       throw new NotFoundException(`Proyecto con id ${id_proyecto} no encontrado`);
     }
 
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage();
-    const { width, height } = page.getSize();
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    console.log('✅ Proyecto encontrado:', proyecto.titulo);
 
-    const lines = [
-      `Documento completo - ${proyecto.titulo}`,
-      `Etapa: ${etapa}`,
-      `Generado por: ${idEstudiante}`,
-      `Fecha: ${new Date().toLocaleString('es-ES')}`,
-      '',
-      'Este archivo ha sido generado automáticamente como documento completo de la etapa correspondiente.',
-    ];
+    // Definir las subetapas para cada etapa
+    const etapasMap: Record<string, string[]> = {
+      'Etapa 1: Documentación del Prototipo': [
+        'Descripción',
+        'Diagramas de C.U.',
+        'Arquitectura',
+        'Entidad-Relación',
+        'Interfaces',
+      ],
+      'Etapa 2: Desarrollo del Prototipo': [
+        'Avance 25%',
+        'Avance 50%',
+        'Avance 75%',
+        'Avance 100%',
+      ],
+      'Etapa 3: Capítulo 1 Introducción': [
+        'Objetivos',
+        'Antecedentes',
+        'Planteamiento del problema',
+        'Preguntas de investigación',
+        'Justificación',
+        'Viabilidad',
+        'Metodología',
+      ],
+      'Etapa 4: Capítulo 2 Marco Teórico': [
+        'Revisión de literatura',
+        'Desarrollo de conceptos',
+      ],
+    };
 
-    let y = height - 60;
-    page.drawText(lines.shift() ?? '', {
-      x: 50,
-      y,
-      size: 18,
-      font,
-    });
-    y -= 28;
+    const subetapas = etapasMap[etapa] || [];
+    console.log('📋 Subetapas a incluir:', subetapas);
 
-    for (const line of lines) {
-      page.drawText(line, {
+    try {
+      // Primero, obtener TODAS las revisiones del proyecto para debuggear
+      const todasRevisions = await this.prisma.revisiones.findMany({
+        where: { id_proyecto },
+      });
+      console.log(`🔍 Total de revisiones en proyecto: ${todasRevisions.length}`);
+      console.log('📋 Tipos de revisiones encontradas:', todasRevisions.map(r => ({ tipo: r.tipo, estado: r.estado })));
+
+      // Obtener todas las revisiones aprobadas de esas subetapas
+      const revisionesAprobadas = await this.prisma.revisiones.findMany({
+        where: {
+          id_proyecto,
+          estado: 'aceptada',
+          tipo: { in: subetapas },
+        },
+        orderBy: [{ tipo: 'asc' }, { fecha: 'desc' }],
+      });
+
+      console.log(`📄 Encontradas ${revisionesAprobadas.length} revisiones aprobadas`);
+      if (revisionesAprobadas.length > 0) {
+        console.log('📋 Revisiones aprobadas:', revisionesAprobadas.map(r => ({ tipo: r.tipo, path: r.documento_path })));
+      }
+
+      const pdfDoc = await PDFDocument.create();
+
+      // Agregar página de portada
+      const portadaPage = pdfDoc.addPage();
+      const { width, height } = portadaPage.getSize();
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+      portadaPage.drawText(proyecto.titulo, {
         x: 50,
-        y,
+        y: height - 100,
+        size: 24,
+        font: boldFont,
+      });
+
+      portadaPage.drawText(`${etapa}`, {
+        x: 50,
+        y: height - 150,
+        size: 16,
+        font,
+      });
+
+      portadaPage.drawText(`Generado: ${new Date().toLocaleString('es-ES')}`, {
+        x: 50,
+        y: height - 200,
         size: 12,
         font,
       });
-      y -= 18;
-    }
 
-    const pdfBytes = await pdfDoc.save();
-    return Buffer.from(pdfBytes);
+      // Procesar cada revisión aprobada
+      for (const revision of revisionesAprobadas) {
+        console.log(`📥 Procesando revisión: ${revision.tipo}`);
+        const filePath = path.join(process.cwd(), revision.documento_path);
+
+        if (!fs.existsSync(filePath)) {
+          console.warn(`⚠️ Archivo no encontrado: ${filePath}`);
+          
+          // Agregar página con aviso si el archivo no existe
+          const avisoPage = pdfDoc.addPage();
+          avisoPage.drawText(`${revision.tipo}`, {
+            x: 50,
+            y: height - 60,
+            size: 14,
+            font: boldFont,
+          });
+          avisoPage.drawText('Archivo no disponible', {
+            x: 50,
+            y: height - 100,
+            size: 12,
+            font,
+          });
+          continue;
+        }
+
+        try {
+          const fileExt = path.extname(filePath).toLowerCase();
+
+          if (fileExt === '.pdf') {
+            // Si es PDF, incorporarlo
+            const existingPdfBytes = fs.readFileSync(filePath);
+            const pdfToMerge = await PDFDocument.load(existingPdfBytes);
+            const pages = await pdfDoc.copyPages(pdfToMerge, pdfToMerge.getPageIndices());
+
+            for (const page of pages) {
+              pdfDoc.addPage(page);
+            }
+
+            console.log(`✅ PDF incorporado: ${revision.tipo}`);
+          } else {
+            // Para otros formatos (docx, doc), agregar una referencia
+            const tituloPage = pdfDoc.addPage();
+            tituloPage.drawText(`${revision.tipo}`, {
+              x: 50,
+              y: height - 60,
+              size: 14,
+              font: boldFont,
+            });
+            tituloPage.drawText(
+              `Archivo: ${path.basename(filePath)}`,
+              {
+                x: 50,
+                y: height - 100,
+                size: 12,
+                font,
+              }
+            );
+            tituloPage.drawText(
+              `Nota: Este archivo está en formato ${fileExt.toUpperCase()} y no pudo ser incorporado directamente.`,
+              {
+                x: 50,
+                y: height - 140,
+                size: 10,
+                font,
+              }
+            );
+
+            console.log(`ℹ️ Archivo ${fileExt} referenciado: ${revision.tipo}`);
+          }
+        } catch (fileError) {
+          console.error(`❌ Error procesando archivo: ${revision.tipo}`, fileError);
+          
+          // Agregar página de error
+          const errorPage = pdfDoc.addPage();
+          errorPage.drawText(`${revision.tipo}`, {
+            x: 50,
+            y: height - 60,
+            size: 14,
+            font: boldFont,
+          });
+          errorPage.drawText('Error al procesar el archivo', {
+            x: 50,
+            y: height - 100,
+            size: 12,
+            font,
+          });
+        }
+      }
+
+      const pdfBytes = await pdfDoc.save();
+      const buffer = Buffer.from(pdfBytes);
+      console.log('✅ PDF generado exitosamente. Tamaño:', buffer.length, 'bytes');
+      return buffer;
+    } catch (error) {
+      console.error('❌ Error al generar PDF:', error);
+      throw error;
+    }
   }
 
   async findAll() {
